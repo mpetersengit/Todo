@@ -14,6 +14,10 @@ jobs:
   test:
     name: Build and Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     
     steps:
     - name: Checkout code
@@ -31,7 +35,7 @@ jobs:
       run: dotnet build --no-restore --configuration Release
       
     - name: Run tests
-      run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
+      run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
       
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -41,17 +45,15 @@ jobs:
         path: '**/TestResults/**/*'
         retention-days: 30
         
-    - name: Generate test report
-      uses: dorny/test-reporter@v1
+    - name: Publish test results
+      uses: EnricoMi/publish-unit-test-result-action@v2
       if: always()
       with:
-        name: Test Results
-        path: '**/*.trx'
-        reporter: dotnet-trx
-        list-suites: all
-        list-tests: all
-        max-annotations: 50
-        fail-on-error: false
+        files: 'TestResults/**/*.trx'
+        check_name: 'Test Results'
+        comment_mode: 'off'
+        report_individual_runs: false
+        deduplicate_classes_by_file_name: false
 
   docker-build:
     name: Build Docker Image
