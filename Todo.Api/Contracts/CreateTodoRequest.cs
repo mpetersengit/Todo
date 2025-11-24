@@ -3,19 +3,10 @@
 /// <summary>
 /// Request model for creating a new todo item.
 /// </summary>
+/// <param name="Title">The title of the todo item. Must be between 1 and 200 characters.</param>
+/// <param name="Description">Optional description providing more details about the task.</param>
+/// <param name="DueDate">Optional due date in YYYY-MM-DD format.</param>
 public record CreateTodoRequest(
-    /// <summary>
-    /// The title of the todo item. Must be between 1 and 200 characters.
-    /// </summary>
-    /// <example>Complete project documentation</example>
     string Title,
-    /// <summary>
-    /// Optional description providing more details about the task.
-    /// </summary>
-    /// <example>Write API documentation and update README with examples</example>
     string? Description,
-    /// <summary>
-    /// Optional due date in YYYY-MM-DD format.
-    /// </summary>
-    /// <example>2025-12-31</example>
     string? DueDate);

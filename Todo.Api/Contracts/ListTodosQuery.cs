@@ -5,46 +5,22 @@ namespace Todo.Api.Contracts;
 /// <summary>
 /// Query parameters for listing todos with filtering, sorting, and pagination.
 /// </summary>
+/// <param name="IsCompleted">Filter by completion status. If null, returns both completed and incomplete items.</param>
+/// <param name="Overdue">Filter to show only overdue items (due date in the past and not completed).</param>
+/// <param name="DueBefore">Filter items with due date on or before this date (YYYY-MM-DD format).</param>
+/// <param name="DueAfter">Filter items with due date on or after this date (YYYY-MM-DD format).</param>
+/// <param name="SortBy">Field to sort by. If null, items are returned in their natural order.</param>
+/// <param name="Order">Sort order. Defaults to Ascending if not specified.</param>
+/// <param name="Page">Page number (1-based). Defaults to 1 if not specified.</param>
+/// <param name="PageSize">Number of items per page. Defaults to 10, maximum is 100.</param>
 public record ListTodosQuery(
-    /// <summary>
-    /// Filter by completion status. If null, returns both completed and incomplete items.
-    /// </summary>
-    /// <example>true</example>
     bool? IsCompleted,
-    /// <summary>
-    /// Filter to show only overdue items (due date in the past and not completed).
-    /// </summary>
-    /// <example>true</example>
     bool? Overdue,
-    /// <summary>
-    /// Filter items with due date on or before this date (YYYY-MM-DD format).
-    /// </summary>
-    /// <example>2025-12-31</example>
     DateOnly? DueBefore,
-    /// <summary>
-    /// Filter items with due date on or after this date (YYYY-MM-DD format).
-    /// </summary>
-    /// <example>2025-01-01</example>
     DateOnly? DueAfter,
-    /// <summary>
-    /// Field to sort by. If null, items are returned in their natural order.
-    /// </summary>
-    /// <example>DueDate</example>
     TodoSortField? SortBy,
-    /// <summary>
-    /// Sort order. Defaults to Ascending if not specified.
-    /// </summary>
-    /// <example>Asc</example>
     SortOrder? Order,
-    /// <summary>
-    /// Page number (1-based). Defaults to 1 if not specified.
-    /// </summary>
-    /// <example>1</example>
     int? Page,
-    /// <summary>
-    /// Number of items per page. Defaults to 10, maximum is 100.
-    /// </summary>
-    /// <example>10</example>
     int? PageSize)
 {
     /// <summary>

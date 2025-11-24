@@ -5,36 +5,18 @@ namespace Todo.Api.Contracts;
 /// <summary>
 /// Response model representing a todo item.
 /// </summary>
+/// <param name="Id">The unique identifier of the todo item.</param>
+/// <param name="Title">The title of the todo item.</param>
+/// <param name="Description">Optional description of the todo item.</param>
+/// <param name="DueDate">Optional due date in YYYY-MM-DD format.</param>
+/// <param name="IsCompleted">Indicates whether the todo item has been completed.</param>
+/// <param name="CreatedAt">The UTC timestamp when the todo item was created.</param>
 public record TodoResponse(
-    /// <summary>
-    /// The unique identifier of the todo item.
-    /// </summary>
-    /// <example>550e8400-e29b-41d4-a716-446655440000</example>
     Guid Id,
-    /// <summary>
-    /// The title of the todo item.
-    /// </summary>
-    /// <example>Complete project documentation</example>
     string Title,
-    /// <summary>
-    /// Optional description of the todo item.
-    /// </summary>
-    /// <example>Write API documentation and update README</example>
     string? Description,
-    /// <summary>
-    /// Optional due date in YYYY-MM-DD format.
-    /// </summary>
-    /// <example>2025-12-31</example>
     string? DueDate,
-    /// <summary>
-    /// Indicates whether the todo item has been completed.
-    /// </summary>
-    /// <example>false</example>
     bool IsCompleted,
-    /// <summary>
-    /// The UTC timestamp when the todo item was created.
-    /// </summary>
-    /// <example>2025-01-15T10:30:00Z</example>
     DateTime CreatedAt)
 {
     /// <summary>
