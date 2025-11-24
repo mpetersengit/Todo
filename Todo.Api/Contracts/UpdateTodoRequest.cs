@@ -6,7 +6,9 @@
 /// <param name="Title">Optional new title for the todo item. Must be between 1 and 200 characters if provided.</param>
 /// <param name="Description">Optional new description for the todo item.</param>
 /// <param name="DueDate">Optional new due date in YYYY-MM-DD format.</param>
+/// <param name="IsCompleted">Optional completion status for the todo item.</param>
 public record UpdateTodoRequest(
     string? Title,
     string? Description,
-    string? DueDate);
+    string? DueDate,
+    bool? IsCompleted);

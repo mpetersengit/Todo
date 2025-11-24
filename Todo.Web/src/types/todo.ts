@@ -11,12 +11,14 @@ export interface CreateTodoRequest {
   title: string;
   description?: string;
   dueDate?: string;
+  isCompleted?: boolean;
 }
 
 export interface UpdateTodoRequest {
   title?: string;
   description?: string;
   dueDate?: string;
+  isCompleted?: boolean;
 }
 
 export interface PaginatedResponse<T> {

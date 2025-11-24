@@ -30,7 +30,7 @@ const ActionButtons = (props: ActionButtonsProps) => {
       >
         ✏️
       </button>
-      {todo.isCompleted ? (
+      {(todo.isCompleted ?? (todo as any).IsCompleted) ? (
         <button
           className="btn-incomplete"
           onClick={() => props.onComplete(todo.id, false)}
@@ -158,9 +158,15 @@ const TodoGrid = () => {
         filterOptions: ['equals'],
         defaultOption: 'equals',
       },
-      valueGetter: (params) => params.data?.isCompleted ? 'Completed' : 'Pending',
-      cellRenderer: (params: ICellRendererParams) => 
-        params.value ? '✅ Completed' : '⏳ Pending',
+      valueGetter: (params) => {
+        // Handle both camelCase (isCompleted) and PascalCase (IsCompleted) for compatibility
+        const isCompleted = params.data?.isCompleted ?? params.data?.IsCompleted ?? false;
+        return isCompleted ? 'Completed' : 'Pending';
+      },
+      cellRenderer: (params: ICellRendererParams) => {
+        const isCompleted = params.data?.isCompleted ?? params.data?.IsCompleted ?? false;
+        return isCompleted ? '✅ Completed' : '⏳ Pending';
+      },
     },
     {
       field: 'createdAt',
@@ -200,7 +206,7 @@ const TodoGrid = () => {
     setModalOpen(true);
   }, []);
 
-  const handleSave = useCallback(async (todo: { title: string; description?: string; dueDate?: string }) => {
+  const handleSave = useCallback(async (todo: { title: string; description?: string; dueDate?: string; isCompleted?: boolean }) => {
     try {
       if (editingTodo) {
         await todoApi.updateTodo(editingTodo.id, todo);

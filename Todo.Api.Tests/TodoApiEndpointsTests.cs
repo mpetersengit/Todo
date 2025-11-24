@@ -20,7 +20,7 @@ public class TodoApiEndpointsTests : IClassFixture<TodoApiFactory>
     [Fact]
     public async Task CreateTodo_ReturnsCreatedResponse()
     {
-        var response = await _client.PostAsJsonAsync("/todos", new CreateTodoRequest("api task", null, null));
+        var response = await _client.PostAsJsonAsync("/todos", new CreateTodoRequest("api task", null, null, null));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var payload = await response.Content.ReadFromJsonAsync<TodoResponse>();
@@ -32,7 +32,7 @@ public class TodoApiEndpointsTests : IClassFixture<TodoApiFactory>
     [Fact]
     public async Task ListTodos_WithCompletionFilter_ReturnsMatchingItems()
     {
-        var created = await _client.PostAsJsonAsync("/todos", new CreateTodoRequest("complete me", null, null));
+        var created = await _client.PostAsJsonAsync("/todos", new CreateTodoRequest("complete me", null, null, null));
         var todo = await created.Content.ReadFromJsonAsync<TodoResponse>();
         Assert.NotNull(todo);
 
@@ -50,7 +50,7 @@ public class TodoApiEndpointsTests : IClassFixture<TodoApiFactory>
         // Create multiple todos
         for (int i = 0; i < 15; i++)
         {
-            await _client.PostAsJsonAsync("/todos", new CreateTodoRequest($"Pagination Task {i}", null, null));
+            await _client.PostAsJsonAsync("/todos", new CreateTodoRequest($"Pagination Task {i}", null, null, null));
         }
 
         var firstPage = await _client.GetFromJsonAsync<PaginatedResponse<TodoResponse>>("/todos?page=1&pageSize=10");

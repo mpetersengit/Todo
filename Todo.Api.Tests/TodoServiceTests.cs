@@ -18,7 +18,7 @@ public class TodoServiceTests
     {
         var repo = new InMemoryTodoRepository();
         var service = new TodoService(repo, _logger);
-        var request = new CreateTodoRequest("  ship feature  ", "  finish writing docs ", "2025-01-01");
+        var request = new CreateTodoRequest("  ship feature  ", "  finish writing docs ", "2025-01-01", null);
 
         var result = await service.CreateAsync(request);
 
@@ -34,7 +34,7 @@ public class TodoServiceTests
     {
         var repo = new InMemoryTodoRepository();
         var service = new TodoService(repo, _logger);
-        var request = new CreateTodoRequest("   ", null, null);
+        var request = new CreateTodoRequest("   ", null, null, null);
 
         await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(request));
     }
@@ -45,10 +45,10 @@ public class TodoServiceTests
         var repo = new InMemoryTodoRepository();
         var service = new TodoService(repo, _logger);
 
-        var existing = await service.CreateAsync(new CreateTodoRequest("initial", null, null));
+        var existing = await service.CreateAsync(new CreateTodoRequest("initial", null, null, null));
 
         await Assert.ThrowsAsync<ValidationException>(() =>
-            service.UpdateAsync(existing.Id, new UpdateTodoRequest(null, null, null)));
+            service.UpdateAsync(existing.Id, new UpdateTodoRequest(null, null, null, null)));
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public class TodoServiceTests
         var repo = new InMemoryTodoRepository();
         var service = new TodoService(repo, _logger);
 
-        await service.CreateAsync(new CreateTodoRequest("done", null, "2024-01-01"));
-        var remaining = await service.CreateAsync(new CreateTodoRequest("remaining", null, "2030-01-01"));
+        await service.CreateAsync(new CreateTodoRequest("done", null, "2024-01-01", null));
+        var remaining = await service.CreateAsync(new CreateTodoRequest("remaining", null, "2030-01-01", null));
         await service.SetCompletedAsync(remaining.Id, true);
 
         var overdue = await service.ListAsync(

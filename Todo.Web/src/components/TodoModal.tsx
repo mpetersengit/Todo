@@ -4,7 +4,7 @@ import './TodoModal.css';
 
 interface TodoModalProps {
   todo: TodoItem | null;
-  onSave: (todo: { title: string; description?: string; dueDate?: string }) => void;
+  onSave: (todo: { title: string; description?: string; dueDate?: string; isCompleted?: boolean }) => void;
   onClose: () => void;
 }
 
@@ -12,16 +12,19 @@ const TodoModal = ({ todo, onSave, onClose }: TodoModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
     if (todo) {
       setTitle(todo.title);
       setDescription(todo.description || '');
       setDueDate(todo.dueDate || '');
+      setIsCompleted(todo.isCompleted ?? (todo as any).IsCompleted ?? false);
     } else {
       setTitle('');
       setDescription('');
       setDueDate('');
+      setIsCompleted(false);
     }
   }, [todo]);
 
@@ -35,6 +38,7 @@ const TodoModal = ({ todo, onSave, onClose }: TodoModalProps) => {
       title: title.trim(),
       description: description.trim() || undefined,
       dueDate: dueDate || undefined,
+      isCompleted: isCompleted,
     });
   };
 
@@ -76,6 +80,18 @@ const TodoModal = ({ todo, onSave, onClose }: TodoModalProps) => {
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
+          </div>
+          <div className="form-group">
+            <label htmlFor="isCompleted" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                id="isCompleted"
+                type="checkbox"
+                checked={isCompleted}
+                onChange={(e) => setIsCompleted(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Mark as completed</span>
+            </label>
           </div>
           <div className="modal-actions">
             <button type="button" className="btn-cancel" onClick={onClose}>

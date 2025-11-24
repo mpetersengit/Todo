@@ -29,7 +29,7 @@ public class TodoService
             Title = req.Title.Trim(),
             Description = req.Description?.Trim(),
             DueDate = due,
-            IsCompleted = false,
+            IsCompleted = req.IsCompleted ?? false,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -139,6 +139,12 @@ public class TodoService
         if (req.DueDate is not null)
         {
             existing.DueDate = Validators.ParseDate(req.DueDate);
+            hasChanges = true;
+        }
+
+        if (req.IsCompleted is not null)
+        {
+            existing.IsCompleted = req.IsCompleted.Value;
             hasChanges = true;
         }
 

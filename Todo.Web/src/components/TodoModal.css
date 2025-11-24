@@ -94,6 +94,17 @@
   min-height: 80px;
 }
 
+.form-group input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.form-group label[for="isCompleted"] {
+  cursor: pointer;
+  user-select: none;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
