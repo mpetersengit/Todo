@@ -1,6 +1,8 @@
 # Todo API
 
-A minimal ASP.NET Core Web API that manages to-do items with file-backed persistence. The project demonstrates production-minded practices: layered architecture, validation, persistence abstractions, filtering/sorting, and automated tests.
+A minimal ASP.NET Core Web API that manages to-do items with file-backed persistence. The project demonstrates production-minded practices: layered architecture, validation, persistence abstractions, filtering/sorting, pagination, automated tests, containerization, and CI/CD.
+
+[![CI/CD Pipeline](https://github.com/mpetersengit/todo-api/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/mpetersengit/todo-api/actions/workflows/ci-cd.yml)
 
 ## Getting Started
 
@@ -78,6 +80,22 @@ docker run --rm -p 8080:8080 -v $(pwd)/data:/app/data todo-api
 ```
 
 The container listens on port `8080` by default (override with `-e ASPNETCORE_URLS=http://+:5000`). Mounting `data/` keeps the JSON store on the host. Windows PowerShell users can map the volume via `-v ${PWD}/data:/app/data`.
+
+**Pre-built images** are available from GitHub Container Registry:
+```bash
+docker pull ghcr.io/mpetersengit/todo-api:latest
+docker run --rm -p 8080:8080 ghcr.io/mpetersengit/todo-api:latest
+```
+
+### CI/CD
+
+This project includes a GitHub Actions workflow (`.github/workflows/ci-cd.yml`) that:
+- ✅ Runs automated tests on every push and pull request
+- ✅ Builds and validates the Docker image
+- ✅ Publishes container images to GitHub Container Registry (on main branch)
+- ✅ Generates test coverage reports and annotations
+
+View the latest workflow runs in the [Actions](https://github.com/mpetersengit/todo-api/actions) tab.
 
 ## Design Notes
 
