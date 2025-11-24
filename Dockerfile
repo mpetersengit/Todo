@@ -23,6 +23,16 @@ RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
+
+# Create directories for data and logs with proper permissions
+RUN mkdir -p /app/data /app/logs && \
+    chmod 755 /app/data /app/logs
+
+# Copy published application
 COPY --from=build /app/publish .
+
+# Expose data directory as volume for persistence (optional - users can mount their own)
+VOLUME ["/app/data"]
+
 ENTRYPOINT ["dotnet", "Todo.Api.dll"]
 
