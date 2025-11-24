@@ -52,8 +52,6 @@ jobs:
         files: 'TestResults/**/*.trx'
         check_name: 'Test Results'
         comment_mode: 'off'
-        report_individual_runs: false
-        deduplicate_classes_by_file_name: false
 
   docker-build:
     name: Build Docker Image
@@ -91,7 +89,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, docker-build]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    
+    permissions:
+      contents: read
+      packages: write
+      
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
