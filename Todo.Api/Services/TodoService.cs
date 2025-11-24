@@ -3,16 +3,24 @@ using Todo.Api.Domain;
 using Todo.Api.Persistence;
 using Todo.Api.Validation;
 
+using Microsoft.Extensions.Logging;
+
 namespace Todo.Api.Services;
 
 public class TodoService
 {
     private readonly ITodoRepository _repo;
+    private readonly ILogger<TodoService> _logger;
 
-    public TodoService(ITodoRepository repo) => _repo = repo;
+    public TodoService(ITodoRepository repo, ILogger<TodoService> logger)
+    {
+        _repo = repo;
+        _logger = logger;
+    }
 
     public async Task<TodoItem> CreateAsync(CreateTodoRequest req, CancellationToken ct = default)
     {
+        _logger.LogInformation("Creating new todo item with title: {Title}", req.Title);
         Validators.ValidateTitle(req.Title);
         var due = Validators.ParseDate(req.DueDate);
 
@@ -25,7 +33,9 @@ public class TodoService
             CreatedAt = DateTime.UtcNow
         };
 
-        return await _repo.AddAsync(item, ct);
+        var result = await _repo.AddAsync(item, ct);
+        _logger.LogInformation("Created todo item with ID: {Id}", result.Id);
+        return result;
     }
 
     public async Task<PaginatedResponse<TodoItem>> ListAsync(
@@ -39,6 +49,9 @@ public class TodoService
         int pageSize,
         CancellationToken ct = default)
     {
+        _logger.LogDebug("Listing todos - Page: {Page}, PageSize: {PageSize}, IsCompleted: {IsCompleted}, Overdue: {Overdue}",
+            page, pageSize, isCompleted, overdue);
+        
         Validators.EnsureDateRange(dueAfter, dueBefore);
         Validators.ValidatePagination(page, pageSize);
 
@@ -92,6 +105,7 @@ public class TodoService
         var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
         var pagedItems = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
+        _logger.LogDebug("Returning {Count} items out of {TotalCount} total", pagedItems.Count, totalCount);
         return new PaginatedResponse<TodoItem>(pagedItems, page, pageSize, totalCount, totalPages);
     }
 
@@ -99,8 +113,13 @@ public class TodoService
 
     public async Task<TodoItem?> UpdateAsync(Guid id, UpdateTodoRequest req, CancellationToken ct = default)
     {
+        _logger.LogInformation("Updating todo item with ID: {Id}", id);
         var existing = await _repo.GetByIdAsync(id, ct);
-        if (existing is null) return null;
+        if (existing is null)
+        {
+            _logger.LogWarning("Todo item with ID {Id} not found for update", id);
+            return null;
+        }
 
         var hasChanges = false;
 
@@ -133,12 +152,26 @@ public class TodoService
 
     public async Task<TodoItem?> SetCompletedAsync(Guid id, bool completed, CancellationToken ct = default)
     {
+        _logger.LogInformation("Setting todo item {Id} completion status to {Completed}", id, completed);
         var existing = await _repo.GetByIdAsync(id, ct);
-        if (existing is null) return null;
+        if (existing is null)
+        {
+            _logger.LogWarning("Todo item with ID {Id} not found for completion status update", id);
+            return null;
+        }
 
         existing.IsCompleted = completed;
         return await _repo.UpdateAsync(existing, ct);
     }
 
-    public Task<bool> DeleteAsync(Guid id, CancellationToken ct = default) => _repo.DeleteAsync(id, ct);
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        _logger.LogInformation("Deleting todo item with ID: {Id}", id);
+        var result = await _repo.DeleteAsync(id, ct);
+        if (!result)
+        {
+            _logger.LogWarning("Todo item with ID {Id} not found for deletion", id);
+        }
+        return result;
+    }
 }

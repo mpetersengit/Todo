@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Todo.Api.Domain;
 
 namespace Todo.Api.Persistence;
@@ -6,6 +7,7 @@ namespace Todo.Api.Persistence;
 public class DataStore
 {
     private readonly string _filePath;
+    private readonly ILogger<DataStore> _logger;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true
@@ -14,9 +16,10 @@ public class DataStore
     private readonly SemaphoreSlim _mutex = new(1, 1);
     private List<TodoItem> _cache = new();
 
-    public DataStore(string filePath)
+    public DataStore(string filePath, ILogger<DataStore> logger)
     {
         _filePath = filePath;
+        _logger = logger;
         var directory = Path.GetDirectoryName(_filePath) ?? throw new InvalidOperationException("Data file path is invalid.");
         Directory.CreateDirectory(directory);
         LoadExistingData();
@@ -109,26 +112,32 @@ public class DataStore
     {
         if (!File.Exists(_filePath))
         {
+            _logger.LogInformation("Data file does not exist, creating new file at {FilePath}", _filePath);
             PersistSync();
             return;
         }
 
         try
         {
+            _logger.LogInformation("Loading existing data from {FilePath}", _filePath);
             var json = File.ReadAllText(_filePath);
             var data = JsonSerializer.Deserialize<List<TodoItem>>(json, _jsonOptions);
             _cache = data ?? new List<TodoItem>();
+            _logger.LogInformation("Loaded {Count} todo items from file", _cache.Count);
         }
         catch (JsonException ex)
         {
+            _logger.LogError(ex, "Failed to parse persisted data at {FilePath}", _filePath);
             throw new InvalidOperationException($"Failed to parse persisted data at '{_filePath}'.", ex);
         }
         catch (IOException ex)
         {
+            _logger.LogError(ex, "Unable to read data file {FilePath}", _filePath);
             throw new InvalidOperationException($"Unable to read data file '{_filePath}'.", ex);
         }
         catch (UnauthorizedAccessException ex)
         {
+            _logger.LogError(ex, "Access denied to data file {FilePath}", _filePath);
             throw new InvalidOperationException($"Access to data file '{_filePath}' was denied.", ex);
         }
     }
@@ -140,12 +149,15 @@ public class DataStore
 
         try
         {
+            _logger.LogDebug("Persisting {Count} todo items to {FilePath}", _cache.Count, _filePath);
             var json = JsonSerializer.Serialize(_cache, _jsonOptions);
             await File.WriteAllTextAsync(tempFile, json, ct);
-            File.Copy(tempFile, _filePath, overwrite: true);
+            File.Move(tempFile, _filePath, overwrite: true);
+            _logger.LogDebug("Successfully persisted data to {FilePath}", _filePath);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
+            _logger.LogError(ex, "Failed to persist data to {FilePath}", _filePath);
             throw new IOException($"Failed to persist data to '{_filePath}'.", ex);
         }
         finally
@@ -163,7 +175,7 @@ public class DataStore
         {
             var json = JsonSerializer.Serialize(_cache, _jsonOptions);
             File.WriteAllText(tempFile, json);
-            File.Copy(tempFile, _filePath, overwrite: true);
+            File.Move(tempFile, _filePath, overwrite: true);
         }
         finally
         {

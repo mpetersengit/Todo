@@ -4,16 +4,20 @@ using Todo.Api.Services;
 using Todo.Api.Validation;
 using Todo.Api.Persistence;
 using Xunit;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Todo.Api.Tests;
 
 public class TodoServiceTests
 {
+    private readonly ILogger<TodoService> _logger = Mock.Of<ILogger<TodoService>>();
+
     [Fact]
     public async Task CreateAsync_WithValidPayload_ReturnsItem()
     {
         var repo = new InMemoryTodoRepository();
-        var service = new TodoService(repo);
+        var service = new TodoService(repo, _logger);
         var request = new CreateTodoRequest("  ship feature  ", "  finish writing docs ", "2025-01-01");
 
         var result = await service.CreateAsync(request);
@@ -29,7 +33,7 @@ public class TodoServiceTests
     public async Task CreateAsync_WithBlankTitle_ThrowsValidationException()
     {
         var repo = new InMemoryTodoRepository();
-        var service = new TodoService(repo);
+        var service = new TodoService(repo, _logger);
         var request = new CreateTodoRequest("   ", null, null);
 
         await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(request));
@@ -39,7 +43,7 @@ public class TodoServiceTests
     public async Task UpdateAsync_WithoutChanges_ThrowsValidationException()
     {
         var repo = new InMemoryTodoRepository();
-        var service = new TodoService(repo);
+        var service = new TodoService(repo, _logger);
 
         var existing = await service.CreateAsync(new CreateTodoRequest("initial", null, null));
 
@@ -51,7 +55,7 @@ public class TodoServiceTests
     public async Task ListAsync_WithFilters_ReturnsExpectedItems()
     {
         var repo = new InMemoryTodoRepository();
-        var service = new TodoService(repo);
+        var service = new TodoService(repo, _logger);
 
         await service.CreateAsync(new CreateTodoRequest("done", null, "2024-01-01"));
         var remaining = await service.CreateAsync(new CreateTodoRequest("remaining", null, "2030-01-01"));

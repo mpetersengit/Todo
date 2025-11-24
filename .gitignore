@@ -160,6 +160,17 @@ MigrationBackup/
 data/*.json
 !data/.gitkeep
 
+# Log files
+logs/
+*.log
+
+# React/Node
+Todo.Web/node_modules/
+Todo.Web/dist/
+Todo.Web/.env.local
+Todo.Web/.env.*.local
+Todo.Web/.vite/
+
 # Test results
 TestResults/
 *.trx

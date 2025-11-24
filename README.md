@@ -1,6 +1,6 @@
-# Todo API
+# Todo Application
 
-A minimal ASP.NET Core Web API that manages to-do items with file-backed persistence. The project demonstrates production-minded practices: layered architecture, validation, persistence abstractions, filtering/sorting, pagination, automated tests, containerization, and CI/CD.
+A full-stack todo list application with an ASP.NET Core REST API backend and a React + TypeScript web interface using AG Grid. The project demonstrates production-minded practices: layered architecture, validation, persistence abstractions, filtering/sorting, pagination, automated tests, containerization, CI/CD, and a modern SPA frontend.
 
 [![CI/CD Pipeline](https://github.com/mpetersengit/todo-api/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/mpetersengit/todo-api/actions/workflows/ci-cd.yml)
 
@@ -8,7 +8,8 @@ A minimal ASP.NET Core Web API that manages to-do items with file-backed persist
 
 ### Prerequisites
 
-- [.NET SDK 9/10 preview](https://dotnet.microsoft.com/en-us/download) (the project targets `net10.0`).
+- [.NET SDK 9/10 preview](https://dotnet.microsoft.com/en-us/download) (the project targets `net10.0`)
+- [Node.js 20.19+ or 22.12+](https://nodejs.org/) and npm (for the web interface - **required for Vite 7**)
 
 ### Run the API
 
@@ -16,7 +17,17 @@ A minimal ASP.NET Core Web API that manages to-do items with file-backed persist
 dotnet run --project Todo.Api
 ```
 
-The application hosts Swagger UI at `http://localhost:5000/swagger` (and `https://localhost:7000`).
+The application hosts Swagger UI at `http://localhost:5245/swagger` (or the port configured in `launchSettings.json`).
+
+### Run the Web Interface
+
+```bash
+cd Todo.Web
+npm install
+npm run dev
+```
+
+The React application will be available at `http://localhost:5173` (or the port Vite assigns). It connects to the API running on `http://localhost:5245` by default (configurable via `VITE_API_URL` environment variable).
 
 ### Configuration
 
@@ -62,6 +73,27 @@ The list endpoint returns a paginated response with metadata including total cou
 
 Validation errors are returned as RFC 7807 problem responses.
 
+### Health Checks
+
+The API includes health check endpoints for monitoring:
+
+- `GET /health` - Overall health status with detailed check results
+- `GET /health/ready` - Readiness probe (checks if service is ready to accept traffic)
+- `GET /health/live` - Liveness probe (checks if service is alive)
+
+Health checks verify file system accessibility and writability for data persistence.
+
+### Logging
+
+The API uses **Serilog** for structured logging:
+
+- Console output with colored formatting
+- File logging to `logs/todo-api-{date}.log` with daily rotation
+- Logs are retained for 7 days
+- Structured logging with context enrichment
+
+Log levels are configurable via `appsettings.json`. All operations (CRUD, errors, validation failures) are logged.
+
 ### Tests
 
 ```bash
@@ -104,6 +136,9 @@ View the latest workflow runs in the [Actions](https://github.com/mpetersengit/t
 - **Persistence boundary:** `ITodoRepository` hides file I/O details. `DataStore` maintains a cached list protected by a `SemaphoreSlim`, validates file accessibility at startup, and writes via atomic temp-file swaps to stay consistent under concurrent requests or sudden interruptions.
 - **Filtering, sorting & pagination:** The service layer owns query logic (completion, overdue, date range, sorting on title/due date/creation time, and pagination) and is exposed via query parameters. Pagination defaults to 10 items per page with a maximum of 100.
 - **Testing strategy:** Unit tests use an in-memory repository to isolate domain logic, while integration tests boot the full host with a temporary data file to execute HTTP scenarios end-to-end.
+- **Web interface:** React SPA using AG Grid Community Edition for data display. Implements full CRUD operations with server-side pagination for better performance with large datasets. Minimal styling focused on functionality and usability.
+- **Logging:** Serilog structured logging with console and file outputs, configurable log levels, and 7-day retention.
+- **Health checks:** File system health checks for readiness and liveness probes, suitable for container orchestration.
 
 ## Security
 
