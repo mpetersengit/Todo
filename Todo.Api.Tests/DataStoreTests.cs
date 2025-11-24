@@ -2,12 +2,15 @@ using System.IO;
 using Todo.Api.Domain;
 using Todo.Api.Persistence;
 using Xunit;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Todo.Api.Tests;
 
 public class DataStoreTests : IDisposable
 {
     private readonly string _tempDirectory = Path.Combine(Path.GetTempPath(), $"todo-store-tests-{Guid.NewGuid():N}");
+    private readonly ILogger<DataStore> _logger = Mock.Of<ILogger<DataStore>>();
 
     [Fact]
     public void Ctor_WithMalformedJson_Throws()
@@ -16,7 +19,7 @@ public class DataStoreTests : IDisposable
         var filePath = Path.Combine(_tempDirectory, "todos.json");
         File.WriteAllText(filePath, "{ not valid json");
 
-        var ex = Assert.Throws<InvalidOperationException>(() => new DataStore(filePath));
+        var ex = Assert.Throws<InvalidOperationException>(() => new DataStore(filePath, _logger));
         Assert.Contains("Failed to parse persisted data", ex.Message);
     }
 
@@ -27,7 +30,7 @@ public class DataStoreTests : IDisposable
         var filePath = Path.Combine(_tempDirectory, "todos.json");
         File.WriteAllText(filePath, "[]");
 
-        var store = new DataStore(filePath);
+        var store = new DataStore(filePath, _logger);
         await using var handle = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
 
         var item = new TodoItem { Title = "locked" };
