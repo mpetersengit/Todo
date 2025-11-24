@@ -1,0 +1,16 @@
+bin/
+obj/
+**/*.user
+**/*.swp
+**/*.db
+*.mdf
+.git
+.gitignore
+data/
+.vs/
+*.csproj.user
+Todo.Api/bin/
+Todo.Api/obj/
+Todo.Api.Tests/bin/
+Todo.Api.Tests/obj/
+
