@@ -136,7 +136,7 @@ View the latest workflow runs in the [Actions](https://github.com/mpetersengit/t
 - **Validation layer:** Centralized in `Validators` with a custom `ValidationException` surfaced as `ValidationProblemDetails`, enabling consistent client feedback.
 - **Persistence boundary:** `ITodoRepository` hides file I/O details. `DataStore` maintains a cached list protected by a `SemaphoreSlim`, validates file accessibility at startup, and writes via atomic temp-file swaps to stay consistent under concurrent requests or sudden interruptions.
 - **Filtering, sorting & pagination:** The service layer owns query logic (completion, overdue, date range, sorting on title/due date/creation time, and pagination) and is exposed via query parameters. Pagination defaults to 10 items per page with a maximum of 100.
-- **Testing strategy:** Unit tests use an in-memory repository to isolate domain logic, while integration tests boot the full host with a temporary data file to execute HTTP scenarios end-to-end.
+- **Testing strategy:** Unit tests use mocking to isolate domain logic, while integration tests boot the full host with a temporary data file to execute HTTP scenarios end-to-end.
 - **Web interface:** React SPA using AG Grid Community Edition for data display. Implements full CRUD operations with server-side pagination for better performance with large datasets. Minimal styling focused on functionality and usability.
 - **Logging:** Serilog structured logging with console and file outputs, configurable log levels, and 7-day retention.
 - **Health checks:** File system health checks for readiness and liveness probes, suitable for container orchestration.
