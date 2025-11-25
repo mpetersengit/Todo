@@ -53,6 +53,76 @@ public class DataStoreTests : IDisposable
         // If no exception, the atomic move succeeded (acceptable on Linux)
     }
 
+    [Fact]
+    public async Task AddAndReadAllAsync_PersistsItems()
+    {
+        // Arrange
+        var store = CreateStore();
+        var item = new TodoItem { Title = "store item" };
+
+        // Act
+        var created = await store.AddAsync(item);
+        var all = await store.ReadAllAsync();
+
+        // Assert
+        Assert.Equal(item.Title, created.Title);
+        Assert.Single(all);
+        Assert.Equal(created.Id, all[0].Id);
+    }
+
+    [Fact]
+    public async Task ReadByIdAsync_WhenMissing_ReturnsNull()
+    {
+        // Arrange
+        var store = CreateStore();
+
+        // Act
+        var result = await store.ReadByIdAsync(Guid.NewGuid());
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenItemExists_ReturnsUpdatedItem()
+    {
+        // Arrange
+        var store = CreateStore();
+        var created = await store.AddAsync(new TodoItem { Title = "original" });
+        created.Title = "updated";
+
+        // Act
+        var updated = await store.UpdateAsync(created);
+
+        // Assert
+        Assert.NotNull(updated);
+        Assert.Equal("updated", updated!.Title);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WhenItemExists_RemovesItem()
+    {
+        // Arrange
+        var store = CreateStore();
+        var created = await store.AddAsync(new TodoItem { Title = "delete me" });
+
+        // Act
+        var removed = await store.RemoveAsync(created.Id);
+        var all = await store.ReadAllAsync();
+
+        // Assert
+        Assert.True(removed);
+        Assert.Empty(all);
+    }
+
+    private DataStore CreateStore()
+    {
+        Directory.CreateDirectory(_tempDirectory);
+        var filePath = Path.Combine(_tempDirectory, $"todos-{Guid.NewGuid():N}.json");
+        File.WriteAllText(filePath, "[]");
+        return new DataStore(filePath, _logger);
+    }
+
     public void Dispose()
     {
         try

@@ -1,11 +1,11 @@
-using Todo.Api.Contracts;
-using Todo.Api.Domain;
-using Todo.Api.Services;
-using Todo.Api.Validation;
-using Todo.Api.Persistence;
-using Xunit;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Todo.Api.Contracts;
+using Todo.Api.Domain;
+using Todo.Api.Persistence;
+using Todo.Api.Services;
+using Todo.Api.Validation;
+using Xunit;
 
 namespace Todo.Api.Tests;
 
@@ -16,12 +16,21 @@ public class TodoServiceTests
     [Fact]
     public async Task CreateAsync_WithValidPayload_ReturnsItem()
     {
-        var repo = new InMemoryTodoRepository();
-        var service = new TodoService(repo, _logger);
+        // Arrange
+        var repo = new Mock<ITodoRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.AddAsync(It.IsAny<TodoItem>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((TodoItem item, CancellationToken _) => item);
+        var service = new TodoService(repo.Object, _logger);
         var request = new CreateTodoRequest("  ship feature  ", "  finish writing docs ", "2025-01-01", null);
 
+        // Act
         var result = await service.CreateAsync(request);
 
+        // Assert
+        repo.Verify(r => r.AddAsync(It.Is<TodoItem>(t =>
+            t.Title == "ship feature" &&
+            t.Description == "finish writing docs" &&
+            t.DueDate == new DateOnly(2025, 1, 1)), It.IsAny<CancellationToken>()), Times.Once);
         Assert.Equal("ship feature", result.Title);
         Assert.Equal("finish writing docs", result.Description);
         Assert.Equal(new DateOnly(2025, 1, 1), result.DueDate);
@@ -32,35 +41,58 @@ public class TodoServiceTests
     [Fact]
     public async Task CreateAsync_WithBlankTitle_ThrowsValidationException()
     {
-        var repo = new InMemoryTodoRepository();
-        var service = new TodoService(repo, _logger);
+        // Arrange
+        var repo = new Mock<ITodoRepository>(MockBehavior.Strict);
+        var service = new TodoService(repo.Object, _logger);
         var request = new CreateTodoRequest("   ", null, null, null);
 
+        // Act & Assert
         await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(request));
+        repo.Verify(r => r.AddAsync(It.IsAny<TodoItem>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task UpdateAsync_WithoutChanges_ThrowsValidationException()
     {
-        var repo = new InMemoryTodoRepository();
-        var service = new TodoService(repo, _logger);
+        // Arrange
+        var existing = new TodoItem { Id = Guid.NewGuid(), Title = "initial" };
+        var repo = new Mock<ITodoRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        var service = new TodoService(repo.Object, _logger);
 
-        var existing = await service.CreateAsync(new CreateTodoRequest("initial", null, null, null));
-
+        // Act & Assert
         await Assert.ThrowsAsync<ValidationException>(() =>
             service.UpdateAsync(existing.Id, new UpdateTodoRequest(null, null, null, null)));
+
+        repo.Verify(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>()), Times.Once);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<TodoItem>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task ListAsync_WithFilters_ReturnsExpectedItems()
     {
-        var repo = new InMemoryTodoRepository();
-        var service = new TodoService(repo, _logger);
+        // Arrange
+        var overdueItem = new TodoItem
+        {
+            Title = "done",
+            DueDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1),
+            IsCompleted = false,
+            CreatedAt = DateTime.UtcNow.AddDays(-2)
+        };
+        var completedItem = new TodoItem
+        {
+            Title = "remaining",
+            DueDate = DateOnly.FromDateTime(DateTime.UtcNow).AddYears(5),
+            IsCompleted = true,
+            CreatedAt = DateTime.UtcNow.AddDays(-1)
+        };
+        var repo = new Mock<ITodoRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TodoItem> { overdueItem, completedItem });
+        var service = new TodoService(repo.Object, _logger);
 
-        await service.CreateAsync(new CreateTodoRequest("done", null, "2024-01-01", null));
-        var remaining = await service.CreateAsync(new CreateTodoRequest("remaining", null, "2030-01-01", null));
-        await service.SetCompletedAsync(remaining.Id, true);
-
+        // Act
         var overdue = await service.ListAsync(
             isCompleted: false,
             overdue: true,
@@ -71,41 +103,119 @@ public class TodoServiceTests
             page: 1,
             pageSize: 10);
 
+        // Assert
+        repo.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
         Assert.Single(overdue.Items);
         Assert.Equal("done", overdue.Items[0].Title);
         Assert.Equal(1, overdue.TotalCount);
         Assert.Equal(1, overdue.TotalPages);
     }
 
-    private sealed class InMemoryTodoRepository : ITodoRepository
+    [Fact]
+    public async Task GetAsync_WhenItemExists_ReturnsItem()
     {
-        private readonly List<TodoItem> _items = new();
+        // Arrange
+        var existing = new TodoItem { Id = Guid.NewGuid(), Title = "existing" };
+        var repo = new Mock<ITodoRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        var service = new TodoService(repo.Object, _logger);
 
-        public Task<TodoItem> AddAsync(TodoItem item, CancellationToken ct = default)
-        {
-            _items.Add(item);
-            return Task.FromResult(item);
-        }
+        // Act
+        var result = await service.GetAsync(existing.Id);
 
-        public Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
-        {
-            var removed = _items.RemoveAll(x => x.Id == id) > 0;
-            return Task.FromResult(removed);
-        }
+        // Assert
+        Assert.Equal(existing, result);
+        repo.Verify(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>()), Times.Once);
+    }
 
-        public Task<IReadOnlyList<TodoItem>> GetAllAsync(CancellationToken ct = default)
-            => Task.FromResult<IReadOnlyList<TodoItem>>(_items.ToList());
+    [Fact]
+    public async Task UpdateAsync_WhenItemMissing_ReturnsNull()
+    {
+        // Arrange
+        var repo = new Mock<ITodoRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((TodoItem?)null);
+        var service = new TodoService(repo.Object, _logger);
 
-        public Task<TodoItem?> GetByIdAsync(Guid id, CancellationToken ct = default)
-            => Task.FromResult(_items.FirstOrDefault(x => x.Id == id));
+        // Act
+        var result = await service.UpdateAsync(Guid.NewGuid(), new UpdateTodoRequest("noop", null, null, null));
 
-        public Task<TodoItem?> UpdateAsync(TodoItem item, CancellationToken ct = default)
-        {
-            var idx = _items.FindIndex(x => x.Id == item.Id);
-            if (idx < 0) return Task.FromResult<TodoItem?>(null);
-            _items[idx] = item;
-            return Task.FromResult<TodoItem?>(item);
-        }
+        // Assert
+        Assert.Null(result);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<TodoItem>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SetCompletedAsync_WithExistingItem_UpdatesCompletion()
+    {
+        // Arrange
+        var existing = new TodoItem { Id = Guid.NewGuid(), IsCompleted = false };
+        var repo = new Mock<ITodoRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.GetByIdAsync(existing.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+        repo.Setup(r => r.UpdateAsync(It.IsAny<TodoItem>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((TodoItem item, CancellationToken _) => item);
+        var service = new TodoService(repo.Object, _logger);
+
+        // Act
+        var result = await service.SetCompletedAsync(existing.Id, true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result!.IsCompleted);
+        repo.Verify(r => r.UpdateAsync(It.Is<TodoItem>(t => t.IsCompleted), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetCompletedAsync_WhenItemMissing_ReturnsNull()
+    {
+        // Arrange
+        var repo = new Mock<ITodoRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((TodoItem?)null);
+        var service = new TodoService(repo.Object, _logger);
+
+        // Act
+        var result = await service.SetCompletedAsync(Guid.NewGuid(), true);
+
+        // Assert
+        Assert.Null(result);
+        repo.Verify(r => r.UpdateAsync(It.IsAny<TodoItem>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenItemExists_ReturnsTrue()
+    {
+        // Arrange
+        var repo = new Mock<ITodoRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var service = new TodoService(repo.Object, _logger);
+
+        // Act
+        var result = await service.DeleteAsync(Guid.NewGuid());
+
+        // Assert
+        Assert.True(result);
+        repo.Verify(r => r.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenItemMissing_ReturnsFalse()
+    {
+        // Arrange
+        var repo = new Mock<ITodoRepository>(MockBehavior.Strict);
+        repo.Setup(r => r.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        var service = new TodoService(repo.Object, _logger);
+
+        // Act
+        var result = await service.DeleteAsync(Guid.NewGuid());
+
+        // Assert
+        Assert.False(result);
+        repo.Verify(r => r.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
 
