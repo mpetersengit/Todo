@@ -2,9 +2,6 @@
 
 A full-stack todo list application with an ASP.NET Core REST API backend and a React + TypeScript web interface using AG Grid. The project demonstrates production-minded practices: layered architecture, validation, persistence abstractions, filtering/sorting, pagination, automated tests, containerization, CI/CD, and a modern SPA frontend.
 
-## CI/CD Pipeline
-https://github.com/mpetersengit/todo-api/actions/workflows/ci-cd.yml
-
 ## Getting Started
 
 ### Prerequisites
